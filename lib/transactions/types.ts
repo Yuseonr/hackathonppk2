@@ -24,7 +24,7 @@ export interface TransactionInput {
   type: TransactionType;
   amount: number;
   transactionDate: string;
-  description?: string;
+  description?: string | null;
 }
 
 export interface ActionResult<T = unknown> {

@@ -35,7 +35,9 @@ export default function TransactionFormModal({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (isOpen) {
+    if (!isOpen) return;
+
+    const timeoutId = window.setTimeout(() => {
       if (editData) {
         setType(editData.type);
         setAmount(editData.amount.toString());
@@ -44,14 +46,14 @@ export default function TransactionFormModal({
       } else {
         setType("expense");
         setAmount("");
-        // Default to today in YYYY-MM-DD local format
-        const today = new Date().toISOString().split("T")[0];
-        setTransactionDate(today);
+        setTransactionDate(getToday());
         setDescription("");
       }
       setErrorMsg(null);
       setFieldErrors({});
-    }
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [isOpen, editData]);
 
   if (!isOpen) return null;
@@ -349,4 +351,11 @@ export default function TransactionFormModal({
       </div>
     </div>
   );
+}
+
+function getToday(): string {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
 }

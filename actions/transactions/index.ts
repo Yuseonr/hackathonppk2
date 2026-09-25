@@ -24,7 +24,7 @@ export async function createTransactionAction(data: {
   type: TransactionType;
   amount: number;
   transactionDate: string;
-  description?: string;
+  description?: string | null;
 }) {
   const result = await createTransaction(data);
   if (result.ok) {
@@ -42,7 +42,7 @@ export async function updateTransactionAction(data: {
   type: TransactionType;
   amount: number;
   transactionDate: string;
-  description?: string;
+  description?: string | null;
 }) {
   const result = await updateTransaction(data);
   if (result.ok) {
@@ -69,12 +69,17 @@ export async function deleteTransactionAction(id: string) {
  * Sesuai requirement PRD US-08 dan AC-07
  */
 export async function setThemePreferenceAction(theme: "light" | "dark") {
+  if (theme !== "light" && theme !== "dark") {
+    return { ok: false, message: "Preferensi tema tidak valid." };
+  }
+
   const cookieStore = await cookies();
   cookieStore.set("theme", theme, {
     path: "/",
     maxAge: 60 * 60 * 24 * 365, // 1 tahun
     sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
     httpOnly: false, // Boleh diakses client untuk script tema instan
   });
-  return { ok: true, theme };
+  return { ok: true, message: "Preferensi tema disimpan.", theme };
 }

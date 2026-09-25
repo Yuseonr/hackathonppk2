@@ -8,7 +8,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -91,7 +91,7 @@ export default function RegisterPage() {
               />
               {fieldErrors.email && (
                 <p className="mt-1 text-xs text-red-600 dark:text-red-400">
-                  {fieldErrors.email.join(", ")}
+                  {fieldErrors.email}
                 </p>
               )}
             </div>
@@ -110,12 +110,12 @@ export default function RegisterPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Minimal 6 karakter"
+                placeholder="Minimal 8 karakter"
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
               />
               {fieldErrors.password && (
                 <p className="mt-1 text-xs text-red-600 dark:text-red-400">
-                  {fieldErrors.password.join(", ")}
+                  {fieldErrors.password}
                 </p>
               )}
             </div>

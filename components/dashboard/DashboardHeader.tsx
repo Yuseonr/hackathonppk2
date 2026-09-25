@@ -1,5 +1,6 @@
 import React from "react";
 import ThemeToggle from "@/components/preferences/ThemeToggle";
+import { logout } from "@/actions/auth";
 
 interface DashboardHeaderProps {
   userEmail: string;
@@ -48,7 +49,7 @@ export default function DashboardHeader({ userEmail }: DashboardHeaderProps) {
           <ThemeToggle />
 
           {/* Tombol Logout (Menghubungkan ke endpoint/form logout Yuma) */}
-          <form action="/api/auth/logout" method="POST">
+          <form action={logout}>
             <button
               type="submit"
               className="p-2 sm:px-3 sm:py-2 rounded-lg text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-transparent hover:border-rose-200 dark:hover:border-rose-900 transition-colors flex items-center gap-1.5 cursor-pointer"
