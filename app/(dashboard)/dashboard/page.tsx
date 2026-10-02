@@ -1,6 +1,8 @@
 import React from "react";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import DashboardClientView from "@/components/dashboard/DashboardClientView";
+import { getCurrentMonthYear } from "@/lib/month";
+import { getBudget } from "@/lib/budget/service";
 import { getDashboardData } from "@/lib/transactions/service";
 
 export const metadata = {
@@ -12,7 +14,11 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const dashboardData = await getDashboardData();
+  const monthYear = getCurrentMonthYear();
+  const [dashboardData, budget] = await Promise.all([
+    getDashboardData(monthYear),
+    getBudget(monthYear),
+  ]);
 
   return (
     <div className="min-h-screen bg-zinc-50/60 dark:bg-black text-zinc-900 dark:text-zinc-100 flex flex-col">
@@ -32,7 +38,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* Client Interactive View */}
-        <DashboardClientView initialData={dashboardData} />
+        <DashboardClientView initialData={dashboardData} initialBudget={budget} />
       </main>
 
       {/* Simple Footer */}

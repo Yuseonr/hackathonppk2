@@ -13,8 +13,8 @@ import type { TransactionType } from "@/lib/transactions/types";
 /**
  * Server Action: Mengambil data dashboard
  */
-export async function getDashboardDataAction() {
-  return await getDashboardData();
+export async function getDashboardDataAction(monthYear: string) {
+  return await getDashboardData(monthYear);
 }
 
 /**

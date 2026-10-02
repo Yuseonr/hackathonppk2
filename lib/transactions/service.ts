@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth/session";
+import { getMonthDateRange } from "@/lib/month";
 import type {
   ActionResult,
   DashboardData,
@@ -88,11 +89,18 @@ function validateTransactionInput(data: unknown) {
   };
 }
 
-/** Mengambil dashboard hanya untuk pengguna dari session aktif. */
-export async function getDashboardData(): Promise<DashboardData> {
+/** Mengambil dashboard bulanan hanya untuk pengguna dari session aktif. */
+export async function getDashboardData(monthYear: string): Promise<DashboardData> {
   const { userId, userEmail } = await requireSession();
+  const { start, end } = getMonthDateRange(monthYear);
   const transactions = await prisma.transaction.findMany({
-    where: { userId },
+    where: {
+      userId,
+      transactionDate: {
+        gte: start,
+        lt: end,
+      },
+    },
     orderBy: [{ transactionDate: "desc" }, { createdAt: "desc" }],
   });
 
@@ -109,6 +117,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   }
 
   return {
+    monthYear,
     userId,
     userEmail,
     totalIncome,
