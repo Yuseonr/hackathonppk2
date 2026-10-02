@@ -149,3 +149,97 @@ Yuma tidak mengubah komponen dashboard Fritz. Fritz tidak mengatur cookie sessio
 | AC-05 | Filter Semua/Pemasukan/Pengeluaran bekerja pada transaksi pengguna yang sedang login. |
 | AC-06 | Pengguna tidak dapat membaca, mengubah, atau menghapus transaksi milik pengguna lain. |
 | AC-07 | Tema terang/gelap tersimpan di cookie preferensi dan tetap diterapkan setelah halaman dimuat ulang. |
+
+
+
+# MoneyLover — Expense Tracker Mahasiswa (Fase 2)
+
+## Ringkasan
+
+MoneyLover adalah aplikasi web untuk membantu mahasiswa mengelola keuangan pribadi. Pada Fase 2 ini, aplikasi diperluas dengan fitur **Manajemen Anggaran Bulanan (Budgeting)**. Pengguna dapat menetapkan batas anggaran setiap bulannya. Aplikasi akan secara otomatis memantau total pengeluaran dan menampilkan indikator sisa anggaran secara *real-time* (menggunakan pendekatan AJAX / Server Actions tanpa *full page reload*).
+
+Setiap transaksi dan anggaran dimiliki oleh satu pengguna. Pengguna hanya dapat melihat dan mengelola data miliknya sendiri.
+
+## Teknologi
+*   Aplikasi web: Next.js (App Router) + Server Actions (implementasi AJAX).
+*   Database: PostgreSQL (Docker) + Prisma ORM.
+*   Tampilan: React + Tailwind CSS.
+
+## User Stories Tambahan (Fase 2)
+
+| ID | User story |
+|---|---|
+| US-09 | Sebagai pengguna, saya ingin dapat menetapkan anggaran bulanan agar saya memiliki batas target pengeluaran. |
+| US-10 | Sebagai pengguna, saya ingin melihat ringkasan anggaran (total pengeluaran bulanan vs anggaran, serta sisa anggaran) di dashboard. |
+| US-11 | Sebagai pengguna, saya ingin melihat indikator visual (status aman/peringatan/melebihi batas) dari penggunaan anggaran saya bulan ini. |
+| US-12 | Sebagai pengguna, saya ingin memilih dan memfilter dashboard berdasarkan bulan tertentu, sehingga seluruh data transaksi dan anggaran menyesuaikan dengan bulan tersebut secara mulus (AJAX). |
+
+## ERD (Pembaruan)
+
+Penambahan tabel `BUDGET` untuk menyimpan anggaran bulanan pengguna. Hubungan: Satu Pengguna bisa memiliki banyak Anggaran (satu untuk tiap bulan).
+
+```mermaid
+erDiagram
+    USER ||--o{ SESSION : has
+    USER ||--o{ TRANSACTION : owns
+    USER ||--o{ BUDGET : sets
+
+    USER {
+        uuid id PK
+        string email UK
+        string password_hash
+    }
+    
+    TRANSACTION {
+        uuid id PK
+        uuid user_id FK
+        string type "income | expense"
+        decimal amount
+        date transaction_date
+    }
+
+    BUDGET {
+        uuid id PK
+        uuid user_id FK
+        string month_year "Format: YYYY-MM"
+        decimal amount
+    }
+```
+
+## Pembagian Kerja (Yuma, Fritz, Anandra)
+
+Karena tim sekarang bertambah menjadi 3 orang, pembagian tanggung jawab didefinisikan secara spesifik agar tidak terjadi bentrok kode (konflik *merge*).
+
+| Developer | Peran & Fokus | Direktori Utama |
+|---|---|---|
+| **Yuma** | **Sistem Core & Keamanan**: Menjaga kestabilan *auth*, sesi, dan keamanan *database*. Memastikan fungsi pelindung seperti `requireSession` siap melayani komponen/fungsi baru buatan Anandra. | `(auth)/**`, `lib/auth/**` |
+| **Fritz** | **Dashboard Inti & Filter**: Melakukan *refactor* dasbor dan CRUD transaksi agar mendukung filter berbasis waktu (Monthly Filter). Memastikan filter dasbor memuat data secara AJAX / *asinkron*. | `(dashboard)/**`, `lib/transactions/**` |
+| **Anandra** | **Manajemen Anggaran (Budget)**: Bertanggung jawab membuat *schema* tabel Budget, logika Server Action untuk *Set Budget*, dan antarmuka komponen indikator anggaran. | `lib/budget/**`, `actions/budget/**`, komponen budget |
+
+### Detail Tugas & Kontrak Kerja
+
+**1. Yuma (Core & Auth)**
+*   Memastikan `requireSession` bekerja dengan baik untuk memproteksi API / aksi baru dari Anandra.
+*   Tidak banyak fitur UI baru untuk Yuma di fase ini, tapi Yuma bertugas melakukan *review* terhadap logika keamanan yang dibuat oleh Fritz dan Anandra, serta mengelola konfigurasi server/infrastruktur jika ada perubahan.
+
+**2. Fritz (Transaction & Dashboard Filters)**
+*   **Tugas UI:** Membuat elemen antarmuka (misal *Dropdown* atau *Date Picker* khusus bulan) di Dashboard untuk memilih Bulan aktif (misalnya: Oktober 2026).
+*   **Tugas Logika:** Memperbarui fungsi `getDashboardData` untuk menerima parameter bulan (`monthYear`).
+*   **AJAX:** Saat bulan diganti, memuat ulang tabel transaksi dan total pengeluaran untuk bulan tersebut **tanpa me-reload seluruh halaman browser** (bisa memanfaatkan _Search Parameters_ Next.js atau `useTransition`).
+*   *Kontrak dengan Anandra:* Fritz akan mengirimkan variabel `monthYear` yang sedang aktif serta angka `totalExpense` bulanan ke dalam komponen UI buatan Anandra.
+
+**3. Anandra (Budgeting Features)**
+*   **Database:** Menambahkan skema model `Budget` ke dalam file `schema.prisma`.
+*   **Server Actions:** Membuat fungsi `setBudgetAction(monthYear, amount)` dan `getBudgetAction(monthYear)`.
+*   **Tugas UI:**
+    *   Membuat form modal/komponen **Set Budget** yang memungkinkan user memasukkan target angka.
+    *   Membuat komponen **Budget Summary & Indicator**: Menampilkan visualisasi batang progres (*progress bar*). 
+        *   Warna **Hijau**: Pengeluaran < 75% dari Anggaran.
+        *   Warna **Kuning**: Pengeluaran antara 75% - 99%.
+        *   Warna **Merah**: Pengeluaran >= 100% (Over Budget).
+*   *Kontrak dengan Fritz:* Komponen Anandra sifatnya menunggu informasi dari Fritz. Komponen Anandra butuh dimasukkan ke dalam halaman dasbor Fritz, menerima `monthYear` dan `totalExpense` sebagai *props* untuk menghitung progres indikator.
+
+## Aturan Kolaborasi & Integrasi
+1.  **Pemegang State:** State tentang "Bulan apa yang sedang dilihat user" dipegang oleh Fritz. Anandra hanya membaca state tersebut.
+2.  **Migrasi Database:** Perubahan skema `schema.prisma` oleh Anandra wajib diinfokan ke Yuma dan Fritz agar mereka bisa menjalankan `npx prisma db push` atau `npx prisma migrate dev` di mesin lokal masing-masing.
+3.  **Tidak Boleh Melangkahi Ranah:** Anandra tidak boleh mengubah kode form transaksi milik Fritz. Fritz tidak boleh membongkar logika kalkulasi *progress bar* milik Anandra. Interaksi harus melalui *Props* React atau Server Actions.
