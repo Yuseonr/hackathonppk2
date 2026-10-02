@@ -17,6 +17,8 @@ export interface DashboardData {
   totalIncome: number;
   totalExpense: number;
   balance: number;
+  monthYear: string; // format YYYY-MM atau "all"
+  availableMonths: string[]; // daftar YYYY-MM yang memiliki transaksi atau bulan aktif
   transactions: TransactionItem[];
 }
 

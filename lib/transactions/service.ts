@@ -88,13 +88,69 @@ function validateTransactionInput(data: unknown) {
   };
 }
 
-/** Mengambil dashboard hanya untuk pengguna dari session aktif. */
-export async function getDashboardData(): Promise<DashboardData> {
+function getCurrentMonthYear(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  return `${year}-${month}`;
+}
+
+/** Mengambil dashboard untuk pengguna dari session aktif, difilter berdasarkan bulan (monthYear: YYYY-MM atau 'all'). */
+export async function getDashboardData(monthYear?: string): Promise<DashboardData> {
   const { userId, userEmail } = await requireSession();
+  const currentMonth = getCurrentMonthYear();
+  let activeMonthYear = monthYear?.trim() || currentMonth;
+
+  const isAll = activeMonthYear === "all";
+  let startDate: Date | undefined;
+  let endDate: Date | undefined;
+
+  if (!isAll) {
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(activeMonthYear)) {
+      activeMonthYear = currentMonth;
+    }
+    const [year, month] = activeMonthYear.split("-").map(Number);
+    startDate = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
+    endDate = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0));
+  }
+
+  // Filter transaksi berdasarkan rentang tanggal bulan yang dipilih
+  const whereClause: {
+    userId: string;
+    transactionDate?: {
+      gte: Date;
+      lt: Date;
+    };
+  } = { userId };
+
+  if (!isAll && startDate && endDate) {
+    whereClause.transactionDate = {
+      gte: startDate,
+      lt: endDate,
+    };
+  }
+
   const transactions = await prisma.transaction.findMany({
-    where: { userId },
+    where: whereClause,
     orderBy: [{ transactionDate: "desc" }, { createdAt: "desc" }],
   });
+
+  // Ambil daftar bulan unik yang memiliki transaksi untuk user ini
+  const allUserTransactions = await prisma.transaction.findMany({
+    where: { userId },
+    select: { transactionDate: true },
+    orderBy: { transactionDate: "desc" },
+  });
+
+  const monthSet = new Set<string>();
+  monthSet.add(currentMonth);
+  if (!isAll) {
+    monthSet.add(activeMonthYear);
+  }
+  for (const item of allUserTransactions) {
+    monthSet.add(item.transactionDate.toISOString().slice(0, 7));
+  }
+  const availableMonths = Array.from(monthSet).sort().reverse();
 
   let totalIncome = 0;
   let totalExpense = 0;
@@ -114,6 +170,8 @@ export async function getDashboardData(): Promise<DashboardData> {
     totalIncome,
     totalExpense,
     balance: totalIncome - totalExpense,
+    monthYear: activeMonthYear,
+    availableMonths,
     transactions: formattedTransactions,
   };
 }

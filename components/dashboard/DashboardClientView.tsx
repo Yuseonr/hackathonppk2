@@ -1,12 +1,17 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import SummaryCards from "./SummaryCards";
+import MonthSelector from "./MonthSelector";
+import BudgetSlot from "./BudgetSlot";
 import TransactionList from "@/components/transactions/TransactionList";
 import TransactionFormModal from "@/components/transactions/TransactionFormModal";
 import DeleteConfirmModal from "@/components/transactions/DeleteConfirmModal";
-import { deleteTransactionAction } from "@/actions/transactions";
+import {
+  deleteTransactionAction,
+  getDashboardDataAction,
+} from "@/actions/transactions";
 import type { DashboardData, TransactionItem } from "@/lib/transactions/types";
 
 interface DashboardClientViewProps {
@@ -17,6 +22,10 @@ export default function DashboardClientView({
   initialData,
 }: DashboardClientViewProps) {
   const router = useRouter();
+
+  // State data dashboard lokal untuk update instan via AJAX
+  const [data, setData] = useState<DashboardData>(initialData);
+  const [isPending, startTransition] = useTransition();
 
   // Modals state
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -29,11 +38,42 @@ export default function DashboardClientView({
   // Success toast/message state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Sinkronisasi data jika initialData dari Server Component berubah
+  useEffect(() => {
+    setData(initialData);
+  }, [initialData]);
+
   function showToast(msg: string) {
     setToastMessage(msg);
     setTimeout(() => {
       setToastMessage(null);
     }, 3500);
+  }
+
+  // Handler AJAX untuk perubahan bulan tanpa reload halaman browser (US-12)
+  function handleMonthChange(newMonth: string) {
+    startTransition(async () => {
+      try {
+        const freshData = await getDashboardDataAction(newMonth);
+        setData(freshData);
+        // Update URL search parameters secara shallow tanpa me-reload browser
+        const url = newMonth === "all" ? "/dashboard?month=all" : `/dashboard?month=${newMonth}`;
+        router.replace(url, { scroll: false });
+      } catch (err) {
+        console.error("Gagal memuat data bulan:", err);
+        showToast("Gagal memuat data periode yang dipilih.");
+      }
+    });
+  }
+
+  // Refresh data transaksi untuk bulan aktif saat ini
+  async function refreshActiveMonth() {
+    try {
+      const freshData = await getDashboardDataAction(data.monthYear);
+      setData(freshData);
+    } catch {
+      router.refresh();
+    }
   }
 
   function handleOpenAdd() {
@@ -59,7 +99,7 @@ export default function DashboardClientView({
       const res = await deleteTransactionAction(deletingItem.id);
       if (res.ok) {
         showToast(res.message);
-        router.refresh();
+        await refreshActiveMonth();
       } else {
         alert(res.message);
       }
@@ -73,13 +113,13 @@ export default function DashboardClientView({
     }
   }
 
-  function handleFormSuccess() {
+  async function handleFormSuccess() {
     showToast(
       editingItem
         ? "Transaksi berhasil diperbarui."
         : "Transaksi baru berhasil disimpan."
     );
-    router.refresh();
+    await refreshActiveMonth();
   }
 
   return (
@@ -104,16 +144,31 @@ export default function DashboardClientView({
         </div>
       )}
 
-      {/* Kartu Ringkasan Keuangan */}
+      {/* Kontrol Pemilihan Bulan (Monthly Filter via AJAX - Tugas Fritz) */}
+      <MonthSelector
+        activeMonth={data.monthYear}
+        availableMonths={data.availableMonths || []}
+        onChangeMonth={handleMonthChange}
+        isPending={isPending}
+      />
+
+      {/* Kontrak Integrasi dengan Anandra: Indikator Anggaran (Budget) */}
+      <BudgetSlot
+        monthYear={data.monthYear}
+        totalExpense={data.totalExpense}
+      />
+
+      {/* Kartu Ringkasan Keuangan (Saldo, Pemasukan, Pengeluaran) */}
       <SummaryCards
-        balance={initialData.balance}
-        totalIncome={initialData.totalIncome}
-        totalExpense={initialData.totalExpense}
+        balance={data.balance}
+        totalIncome={data.totalIncome}
+        totalExpense={data.totalExpense}
+        monthYear={data.monthYear}
       />
 
       {/* Daftar & Riwayat Transaksi */}
       <TransactionList
-        transactions={initialData.transactions}
+        transactions={data.transactions}
         onAddClick={handleOpenAdd}
         onEditClick={handleOpenEdit}
         onDeleteClick={handleOpenDelete}

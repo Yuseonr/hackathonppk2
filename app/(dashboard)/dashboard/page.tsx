@@ -5,14 +5,24 @@ import { getDashboardData } from "@/lib/transactions/service";
 
 export const metadata = {
   title: "Dashboard Keuangan — MoneyLover",
-  description: "Kelola saldo, pemasukan, dan pengeluaran mahasiswa dengan mudah",
+  description: "Kelola saldo, pemasukan, pengeluaran, dan anggaran mahasiswa dengan mudah",
 };
 
 // Pastikan data selalu dinamis dan terupdate
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
-  const dashboardData = await getDashboardData();
+interface DashboardPageProps {
+  searchParams?: Promise<{
+    month?: string;
+  }>;
+}
+
+export default async function DashboardPage(props: DashboardPageProps) {
+  const searchParams = props.searchParams ? await props.searchParams : {};
+  const monthParam =
+    typeof searchParams?.month === "string" ? searchParams.month : undefined;
+
+  const dashboardData = await getDashboardData(monthParam);
 
   return (
     <div className="min-h-screen bg-zinc-50/60 dark:bg-black text-zinc-900 dark:text-zinc-100 flex flex-col">
@@ -27,11 +37,11 @@ export default async function DashboardPage() {
             Ikhtisar Keuangan Anda
           </h2>
           <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-            Pantau arus kas mahasiswa Anda secara teratur dan bijak.
+            Pantau arus kas dan anggaran mahasiswa Anda secara teratur dan bijak.
           </p>
         </div>
 
-        {/* Client Interactive View */}
+        {/* Client Interactive View dengan Filter Bulanan AJAX */}
         <DashboardClientView initialData={dashboardData} />
       </main>
 
