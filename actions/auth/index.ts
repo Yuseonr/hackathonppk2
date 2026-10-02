@@ -86,7 +86,11 @@ export async function login(
   const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
   const rawPassword = typeof password === "string" ? password : "";
 
-  if (!normalizedEmail || !rawPassword) {
+  if (
+    !normalizedEmail ||
+    !rawPassword ||
+    rawPassword.length > MAX_PASSWORD_LENGTH
+  ) {
     return { ok: false, message: "Email atau password salah." };
   }
 
