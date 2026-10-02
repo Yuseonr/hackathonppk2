@@ -12,7 +12,7 @@ export interface TransactionItem {
 }
 
 export interface DashboardData {
-  monthYear: string;
+  monthYear: string; // format YYYY-MM atau "all"
   userEmail: string;
   userId: string;
   totalIncome: number;

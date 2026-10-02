@@ -147,6 +147,7 @@ export default function DashboardClientView({
         balance={dashboardData.balance}
         totalIncome={dashboardData.totalIncome}
         totalExpense={dashboardData.totalExpense}
+        monthYear={monthYear}
       />
 
       <BudgetSummary

@@ -4,6 +4,23 @@ interface SummaryCardsProps {
   balance: number;
   totalIncome: number;
   totalExpense: number;
+  monthYear?: string;
+}
+
+const MONTH_NAMES = [
+  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+  "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+];
+
+function formatPeriodLabel(monthYear?: string): string {
+  if (!monthYear || monthYear === "all") return "Semua Riwayat";
+  try {
+    const [year, month] = monthYear.split("-").map(Number);
+    if (!year || !month || month < 1 || month > 12) return monthYear;
+    return `${MONTH_NAMES[month - 1]} ${year}`;
+  } catch {
+    return monthYear;
+  }
 }
 
 function formatRupiah(amount: number): string {
@@ -19,8 +36,10 @@ export default function SummaryCards({
   balance,
   totalIncome,
   totalExpense,
+  monthYear,
 }: SummaryCardsProps) {
   const isBalancePositive = balance >= 0;
+  const periodLabel = formatPeriodLabel(monthYear);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -51,7 +70,7 @@ export default function SummaryCards({
             {formatRupiah(balance)}
           </h2>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-            Total Pemasukan dikurangi Pengeluaran
+            Pemasukan dikurangi Pengeluaran ({periodLabel})
           </p>
         </div>
       </div>
@@ -83,7 +102,7 @@ export default function SummaryCards({
             +{formatRupiah(totalIncome)}
           </h2>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-            Akumulasi seluruh pemasukan
+            Pemasukan periode {periodLabel}
           </p>
         </div>
       </div>
@@ -115,7 +134,7 @@ export default function SummaryCards({
             -{formatRupiah(totalExpense)}
           </h2>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-            Akumulasi seluruh pengeluaran
+            Pengeluaran periode {periodLabel}
           </p>
         </div>
       </div>
